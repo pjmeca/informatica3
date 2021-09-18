@@ -1277,6 +1277,7 @@ pre[class*="language-"] {
 <li><p><a href="#Punto5">Organización y estructura de Internet</a></p>
 </li>
 </ul>
+<h2 class="atx" id=""></h2>
 <h2 class="atx" id="conceptos-iniciales-lessa-namedouble-quotepunto1double-quotegreaterlessagreater">Conceptos iniciales <a name="Punto1"></a><a></a></h2><a>
 <blockquote>
 <p>Una red es una colección <em>interconectada</em> de dispositivos <em>autónomos</em>. </p>
@@ -1307,6 +1308,47 @@ Algunas características distintivas de un enlace de comunicaciones son la veloc
 <li>Los <strong>protocolos</strong> son las reglas y convenciones que se siguen en la conversación entre el software que se ejecuta en dos dispositivos que intercambian información.</li>
 </ul>
 <p>Cuando dos dispositivos, que pueden ser equipos finales o de conmutación, intercambian datos, se implementa una comunicación entre un programa software que se ejecuta en un dispositivo y otro programa software que se ejecuta en el otro dispositivo. Para que este intercambio sea eficaz, es necesario seguir ciertas actuaciones, la definición de cómo se hace ese intercambio es lo que se conoce como <u>protocolo</u>. Los protocolos se diseñan de tal forma que, si ambos programas implementan correctamente el protocolo, la transferencia de información es posible.</p>
-</a></article>
+<h3 class="atx" id="clasificacion-de-las-redes-de-comunicaciones">Clasificación de las redes de comunicaciones</h3>
+<p>Existen múltiples clasificaciones de las redes de comunicaciones atendiendo a una gran variedad de criterios. Centraremos nuestra clasificación atendiendo a la localidad espacial de la red:</p>
+<ul>
+<li><p><strong>Redes de área local</strong>: Generalmente llamadas <strong>LAN</strong> (<em>Local Area Network</em>), son redes de propiedad privada (una sala, un hogar, etc). 
+Las LAN tradicionales, como Ethernet, se basaban en la idea de utilizar un cable de cobre compartido por todos los ordenadores a través del cual podían comunicarse a velocidades de 10 Mbps.
+En la actualidad se emplean entornos conmutados en los que los hosts se conectan a uno o varios switches Ethernet, que solo envían tráfico por aquellos puertos necesarios para llegar al destino. Tecnologías cableadas como FastEthernet y GigabitEthernet pueden llegar a velocidades de transmisión de 100 y 1000 Mbps respectivamente. Hoy en día también hay tecnologías inalámbricas bien conocidas, como IEEE 802.11a/b/c.</p>
+</li>
+<li><p><strong>Redes de área metropolitana</strong>: Generalmente llamadas <strong>MAN</strong> (<em>Metropolitan Area Network</em>), son una versión más grande de una LAN (un grupo de oficinas, dependencias en edificios cercanos, etc). Pueden ser públicas o privadas.
+La interconexión se realiza a nivel físico con enlaces punto a punto entre ellas mediante cables o inalámbricamente. En su momento, el estandar IEEE 802.6 definía la versión cableada de estas redes, no obstante ya no está a la altura de las tecnologías actuales, por lo que suele ser más efectivo interconectar estas dependencias a través de las WAN.</p>
+</li>
+<li><p><strong>Redes de área extensa</strong>: Generalmente llamadas <strong>WAN</strong> (<em>Wide Area Network</em>), se extienden sobre un área geográfica grande, como puede ser un país o un continente. Se diseñan de tal forma que la subred cuente con un núcleo de enlaces de alta capacidad llamados <em>troncales</em>, ya que las demandas de capacidad suelen ser mayores en estos enlaces que en las redes de los equipos finales.
+Hoy en día existen multitud de tecnologías para redes de área extensa como: FrameRelay, ATM (<em>Asyncronous Transfer Mode</em>) o SONET (<em>Synchronous Optical Network</em>). Una red WAN suele emplear diferentes tecnologías para diferentes parted de la red en función de las demandas de tráfico.</p>
+</li>
+</ul>
+</a><h2 class="atx" id="estrategias-de-conmutacion-lessa-namedouble-quotepunto2double-quotegreaterlessagreater"><a>Estrategias de Conmutación </a><a name="Punto2"></a></h2>
+<blockquote>
+<p>Llamamos <strong>estrategias de conmutación</strong> a las diferentes alternativas que existen para hacer llegar la información de unos elementos de la red a otros a través de los enlaces y los dispositivos intermedios.</p>
+</blockquote>
+<p>Generalmente, cualquiera de las tecnologías de red existentes se basan en alguna de las siguientes estrategias:</p>
+<ul>
+<li><p>Conmutación de circuitos.</p>
+</li>
+<li><p>Conmutación de mensajes.</p>
+</li>
+<li><p><mark>Conmutación de paquetes.</mark></p>
+</li>
+<li><p><mark>Conmutación de circuitos virtuales.</mark></p>
+</li>
+</ul>
+<p>Las más utilizadas hoy en día son la conmutación de circuitos virtuales y la conmutación de paquetes.</p>
+<p>Para poder comparar las distintas estrategias usaremos la siguiente notación:</p>
+<p><img alt="" src="assets/notacion_propiedades_estrategias_comunicacion.png"></p>
+<p>Donde el <em>retardo de propagación</em> se corresponde al tiempo que tarda un bit en recorrer la longitud de un enlace. Se puede calcular de la siguiente forma:</p>
+<p><a href="https://www.codecogs.com/eqnedit.php?latex=PROP&amp;space;=&amp;space;\frac{L}{c}"><img title="PROP = \frac{L}{c}" src="https://latex.codecogs.com/svg.latex?PROP&amp;space;=&amp;space;\frac{L}{c}"></a></p>
+<p>Siendo <em>c</em> la velocidad de la luz. Puesto que no en todos los medios físicos los bits viajan a la velocidad de la luz, el tiempo que lleva transmitir un mensaje de una determinada longitud P se puede calcular como:</p>
+<p><a href="https://www.codecogs.com/eqnedit.php?latex=TRANS_{P}&amp;space;=&amp;space;\frac{P}{R}"><img title="TRANS_{P} = \frac{P}{R}" src="https://latex.codecogs.com/svg.latex?TRANS_{P}&amp;space;=&amp;space;\frac{P}{R}"></a></p>
+<p>Otro parámetro interesante es el <em>retardo</em> o <em>Latency</em>, que consiste en el tiempo transcurrido desde que se envió el primer bit hasta que se recibe el último en el otro extremo del enlace. Puede calcularse como:</p>
+<p><a href="https://www.codecogs.com/eqnedit.php?latex=Latency&amp;space;=&amp;space;PROP&amp;space;+&amp;space;TRANS_{P}"><img title="Latency = PROP + TRANS_{P}" src="https://latex.codecogs.com/svg.latex?Latency&amp;space;=&amp;space;PROP&amp;space;+&amp;space;TRANS_{P}"></a></p>
+<p>En algunos casos es necesario tener en cuenta el <em>retardo de encolado</em>, que es el tiempo que ha de estar un mensaje almacenado en un dispositivo de conmutación hasta que el enlace está libre y puede comenzar su transmisión. En estos casos, el retardo total se calcula como:</p>
+<p><a href="https://www.codecogs.com/eqnedit.php?latex=Latency&amp;space;=&amp;space;PROP&amp;space;+&amp;space;TRANS_{P}&amp;space;+&amp;space;Q_{i}"><img title="Latency = PROP + TRANS_{P} + Q_{i}" src="https://latex.codecogs.com/svg.latex?Latency&amp;space;=&amp;space;PROP&amp;space;+&amp;space;TRANS_{P}&amp;space;+&amp;space;Q_{i}"></a></p>
+<h3 class="atx" id="conmutacion-de-circuitos">Conmutación de circuitos</h3>
+</article>
 </body>
 </html>
