@@ -1279,7 +1279,7 @@ pre[class*="language-"] {
 <li><p><a href="#Bibliografia">Bibliografía</a></p>
 </li>
 </ul>
-<h2 class="atx" id=""></h2>
+<h1 class="atx" id=""></h1>
 <h2 class="atx" id="conceptos-iniciales-lessa-namedouble-quotepunto1double-quotegreaterlessagreater">Conceptos iniciales <a name="Punto1"></a><a></a></h2><a>
 <blockquote>
 <p>Una red es una colección <em>interconectada</em> de dispositivos <em>autónomos</em>. </p>
@@ -1437,6 +1437,8 @@ transmitir el mensaje de longitud <a href="https://www.codecogs.com/eqnedit.php?
 <p>Aunque pueda parecer por tanto que cuanto menor sea el tamaño de cada paquete (<a href="https://www.codecogs.com/eqnedit.php?latex=P"><img title="P" src="https://latex.codecogs.com/svg.latex?P"></a>) mejor rendimiento, la realidad es que como cada paquete ha de llevar también datos de cabecera para poder indicar su destino y que pueda enrutarse de forma independiente, llega un momento en que si hacemos el paquete demasiado pequeño los datos útiles que viajan en cada paquete serían muy pocos en comparación con el tamaño de la cabecera, por lo que al final acabaría desperdiciándose mucho ancho de banda.</p>
 <img data-align="center" alt="" title="" src="assets/resumen_comparativo_esquemas_conmutacion.png">
 
+
+
 <h2 class="atx" id="arquitectura-por-niveles-osi-vs-tcpip-lessa-namedouble-quotepunto3double-quotegreaterlessagreater">Arquitectura por niveles: OSI vs. TCP/IP <a name="Punto3"></a></h2>
 <p>Las redes se organizan como una serie de capas o niveles que realizan una función específica y se agrupan unas sobre otras de la forma que la capa superior usa cierta funcionalidad que ofrece la capa inferior usando una determinada interfaz (API) entre capas. De esta forma, es posible cambiar una implementación de una capa por otra distinta sin que el sistema completo deje de funcionar.</p>
 <p>En una comunicación entre dos equipos, la capa <em>n</em> de uno de ellos es la que habla con la capa <em>n</em> del otro usando una serie de reglas y convenciones para realizar esa conversación que se denominan <em>protocolo</em>. Para que esas dos capas <em>n</em> puedan hablar, ambos usarán la funcionalidad que ofrecen las capas inferiores.</p>
@@ -1470,6 +1472,8 @@ transmitir el mensaje de longitud <a href="https://www.codecogs.com/eqnedit.php?
 <p>Cada datagrama se envía de forma independiente y tampoco hay garantía de tiempo de entrega, ni de entrega en orden ni siquiera de entrega. Por lo que podría hacer falta detectar paquetes duplicados y además habría que ver cómo garantizar la integridad de los datos.</p>
 <p>Para resolver todas estas cuestiones de diseño se incorporó la funcionalidad necesaria a los diferentes protocolos de nivel de transporte, red y enlace.</p>
 <img data-align="center" alt="" title="" src="assets/esquema_comunicacion_internet.png">
+
+
 
 <h2 class="atx" id="organizacion-y-estructura-de-internet-lessa-namedouble-quotepunto5double-quotegreaterlessagreater">Organización y estructura de Internet <a name="Punto5"></a></h2>
 <p>Hoy en día Internet se compone de miles de redes organizadas de forma jerárquica y en muchos casos solapadas entre sí. Los hosts se agrupan en redes de área local (LAN), que a su vez se conectan a un proveedor de servicios de Internet (ISP – <em>Internet Service Provider</em>) mediante la interconexión a uno de sus puntos de presencia (PoP – <em>Point-of-Presence</em>). La conexión se hace en una serie de pasos comenzando por el equipo en las premisas del usuario (CPE – <em>Customer Premises Equipment</em>).</p>
