@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+  <title>Tema 2</title>
   <style>
   @font-face {
   font-family: octicons-link;
@@ -2498,7 +2498,101 @@ Este tipo de rutas, también conocidas como <em>host specific routes</em> indica
 <p>En caso de haber varias rutas para la red destino, se aplica lo que se llama <strong>Longest Prefix Match</strong>, que consiste en que, de todas las entradas de la tabla de rutas en las que la IP destino está englobada, se elige la ruta más específica. Es decir, se elige la que tenga un prefijo de red más largo.</p>
 <p>Generalmente, en caso de empate a longitud de máscara entre más de una entrada que incluye la IP destino, se suele elegir la que aparece primero en la tabla de rutas, aunque esto puede variar entre diferentes sistemas operativos tanto de hosts como de routers.</p>
 <h3 class="atx" id="direccionamiento-lessa-namedouble-quotepunto12double-quotegreaterlessagreater">Direccionamiento <a name="Punto1.2"></a></h3>
+<p>Como se ha explicado previamente, las direcciones IP se dividieron inicialmente entre clases distintas para tener redes de diferente tamaño. La ventaja era que permitía la posibilidad de ofrecer encaminamiento jerárquico de un nivel, es decir, que en las tablas de rutas se podía incluir una entrada para cada red destino (en lugar de para cada IP destino), asumiendo que todos los hosts dentro de esa red están interconectados entre sí. De esta forma, el número de entradas en la tabla de rutas se reduce bastante.</p>
+<p>Esta división tan rígida pronto resultó muy incómoda porque en redes no muy grandes se podían desperdiciar direcciones, mientras que en otras interesaba subdividir la clase más para poder subdividir la red en subredes de menor tamaño.</p>
+<p>Como resultado, surgen una serie de <strong>soluciones de direccionamiento</strong>:</p>
+<h4 class="atx" id="subnetting">Subnetting</h4>
+<p>La primera idea consiste en permitir que la longitud de la parte de red de una dirección IP no tuviese que ser exclusivamente de 8, 16 o 24 bits, sino que pudiesen emplearse otros valores. Para ello, se emplea el <strong><em>subnetting</em></strong>, el cual permite que una red pueda subdividirse en subredes mediante el uso de una nueva máscara. Esta subdivisión y cambio de máscara obliga a que dos hosts que estén en una <strong>subnet-id</strong> diferente requieran de la existencia de uno o varios routers intermedios para poder comunicarse.</p>
+<p>Al igual que antes, la parte de las direcciones IP correspondiente a los hosts no puede estar todo a ceros o todo a unos, ya que esas direcciones están reservadas para indicar la dirección de subred y la dirección de broadcast de esa subred respectivamente. Por lo tanto, al hacer <em>subnetting</em> se desperdician siempre como mínimo dos subredes de todas las creadas, lo cual puede ser un gran desperdicio.</p>
+<h5 class="atx" id="subnet-zero">Subnet-zero</h5>
+<p>Para evitar ese desperdicio, muchas implementaciones sí que permiten el uso de una subred todo a ceros y todo a unos, ya que realmente siguen representado subredes y no hosts.</p>
+<blockquote>
+<p>La relación entre el número de bits (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.43056em;vertical-align:0em;" class="strut"></span><span class="mord mathnormal">n</span></span></span></span>) necesarios para obtener <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.68333em;vertical-align:0em;" class="strut"></span><span style="margin-right:0.07847em;" class="mord mathnormal">X</span></span></span></span> direcciones IPs es: <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.664392em;vertical-align:0em;" class="strut"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span style="height:0.664392em;" class="vlist"><span style="top:-3.063em;margin-right:0.05em;"><span style="height:2.7em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span></span></span></span></span><span style="margin-right:0.2777777777777778em;" class="mspace"></span><span class="mrel">=</span><span style="margin-right:0.2777777777777778em;" class="mspace"></span></span><span class="base"><span style="height:0.68333em;vertical-align:0em;" class="strut"></span><span style="margin-right:0.07847em;" class="mord mathnormal">X</span></span></span></span>.</p>
+</blockquote>
+<p>Al aplicar subnetting, todas las subredes que se crean tienen el mismo tamaño. Es decir, la red se subdivide en subredes de idéntico tamaño. Con el paso del tiempo se vió que esto tamvién puede presentar limitaciones en muchos casos.</p>
+<h5 class="atx" id="variable-length-subnet-masks-vlsm">Variable Length Subnet Masks (VLSM)</h5>
+<p>Es un mecanismo por el cual se permite que, usando máscaras de red de tamaño variable, cada subred de forma independiente pueda adecuarse al número de hosts que realmente pueda llegar a contener.</p>
+<p>Usando VLSM cada subred se puede seguir dividiendo en múltiples subredes adicionales, cada una de ellas con el tamaño que se requiera.</p>
+<p>Una buena regla para hacer un buen reparto de direcciones suele ser empezar primero dividiendo para satisfacer las necesidades de las subredes más grandes y continuar subdividiendo conforme vaya siendo necesario.</p>
+<h4 class="atx" id="supernetting">Supernetting</h4>
+<p>Hay veces que sucede al contrario, en lugar de subdividir un rango de direcciones en subredes más pequeñas, queremos juntar subredes pequeñas para formar una sola. Esto se da en aquellas situaciones en las que una empresa no tiene suficiente con un bloque de, por ejemplo, clase C, pero utilizar una clase B es excesivo y supone un desperdicio.</p>
+<p>En estos casos, la solución requiere el poder asignar a este tipo de organizaciones varios bloques de clase C que puedan combinar para conseguir una red del tamaño necesario. No obstante, si bien esto ayuda  a mitigar el problema del desperdicio de direcciones, crea un nuevo problema: aumenta el tamaño de las tablas de rutas. Esto es así porque, cada vez que se conecta una nueva red a Internet, los diferentes routers acabarán aprendiendo de uno u otro modo cómo deben alcanzarla.</p>
+<p>Si para una misma red se añade una entrada a la tabla de rutas por cada rango de direcciones de clase C que sele asigna, los routers tendrían que disponer de una memoria RAM inmensa.</p>
+<p>Para intentar minimizar este problema, se ha intentado permitir, al menos en el backbone de la red, que las redes se puedan resumir. Es decir, que si para varias redes distintas, pero contiguas, el siguiente salto es el mismo, se puede incluir una sola entrada en la tabla de rutas, en lugar de una para cada red. En concreto, para esto se propuso la <strong>Classless InterDomain Routing</strong> (<strong>CIDR</strong>), que consiste en dos propuestas implantadas simultáneamente:</p>
+<ol>
+<li>El <mark>reparto de direcciones de forma geográfica</mark>.
+Esto permite que sea más probable que puedan agregarse direcciones de red, porque en lugar de asignarse por orden de solicitud, se asignan de forma geográfica. Si dos redes están geográficamente muy cerca, es muy posible que un router lejano use el mismo vecino para llegar a ambas y, por tanto, sería factible agregar ambas en una única entrada en la tabla de rutas.
+Reparto geográfico de direcciones en CIDR:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th align="center">Región</th>
+<th align="center">Direcciones</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">Multiregional</td>
+<td align="center">192.0.0.0 a 193.255.255.255</td>
+</tr>
+<tr>
+<td align="center">Europa</td>
+<td align="center">194.0.0.0 a 195.255.255.255</td>
+</tr>
+<tr>
+<td align="center">Otros</td>
+<td align="center">196.0.0.0 a 197.255.255.255</td>
+</tr>
+<tr>
+<td align="center">USA y Canadá</td>
+<td align="center">198.0.0.0 a 199.255.255.255</td>
+</tr>
+<tr>
+<td align="center">Centroamérica y Sudamérica</td>
+<td align="center">200.0.0.0 a 201.255.255.255</td>
+</tr>
+<tr>
+<td align="center">Asia</td>
+<td align="center">202.0.0.0 a 203.255.255.255</td>
+</tr>
+<tr>
+<td align="center">Otros</td>
+<td align="center">204.0.0.0 a 205.255.255.255</td>
+</tr>
+<tr>
+<td align="center">Otros</td>
+<td align="center">206.0.0.0 a 207.255.255.255</td>
+</tr>
+</tbody></table>
+<ol start="2">
+<li>Extender el concepto de subnetting al contrario para agregar redes (<mark><em>supernetting</em></mark>).
+La segunda propuesta consiste en permitir que una organización pida a su ISP un número de rangos de direcciones que realmente se adapten a sus necesidad y que puedan agruparse. Es importante que puedan agruparse porque, de lo contrario, no se podría reducir el tamaño de las tablas de rutas. Así pues, <mark>es requisito de esta solución que los rangos de direcciones asignados sean contiguos</mark>. Además, la aplicación de CIDR implica también que, si una organización cambia de ISP, deberá devolver sus direcciones y solicitar unas nuevas al nuevo ISP.</li>
+</ol>
+<p>Para hacer <em>supernetting</em> solo es necesario seleccionar la máscara de red más pequeña tal que la parte de red englobe a todas las redes que queremos agregar, pero no incluya aquellas redes que no deben agregarse.</p>
+<hr>
+<p>Ejemplo:</p>
+<p>Tenemos las siguientes entradas en la tabla de rutas:</p>
+<pre><code class="fenced-code-block">194.13.10.0/24 via 195.15.1.1
+194.13.11.0/24 via 195.15.1.1
+194.13.12.0/24 via 195.15.1.1
+194.13.13.0/24 via 195.15.1.1
+194.13.14.0/24 via 195.15.1.1
+194.13.15.0/24 via 195.15.1.1</code></pre>
+<p>Podemos ver como, efectivamente, son contiguos. Ahora veremos si son también agregables:</p>
+<pre><code class="fenced-code-block">194.13.00001010.0/24 via 195.15.1.1
+194.13.00001011.0/24 via 195.15.1.1
+194.13.00001100.0/24 via 195.15.1.1
+194.13.00001101.0/24 via 195.15.1.1
+194.13.00001110.0/24 via 195.15.1.1
+194.13.00001111.0/24 via 195.15.1.1</code></pre>
+<p>Los primeros 5 bits del tercer byte son iguales, tan solo varían los 3 restantes. Podríamos pensar en resumir las entradas como <code>194.13.8.0/21 via 195.15.1.1</code>, no obstante, esto sería incorrecto, ya que en este rango estamos incluyendo otras redes también. La forma correcta de resumir las redes es:</p>
+<pre><code class="fenced-code-block">194.13.10.0/24 via 195.15.1.1
+194.13.11.0/24 via 195.15.1.1
+194.13.12.0/22 via 195.15.1.1</code></pre>
+<img width="615" data-align="center" alt="" src="assets/agregacion_rutas_ISP.png" title="">
+
 <h3 class="atx" id="encaminamiento-intradominio-vs-interdominio-lessa-namedouble-quotepunto13double-quotegreaterlessagreater">Encaminamiento intradominio vs. interdominio <a name="Punto1.3"></a></h3>
+<p>TBC.</p>
 <h2 class="atx" id="introduccion-al-encaminamiento-en-redes-lessa-namedouble-quotepunto2double-quotegreaterlessagreater">Introducción al encaminamiento en redes <a name="Punto2"></a></h2>
 <h2 class="atx" id="algoritmos-de-encaminamiento-lessa-namedouble-quotepunto3double-quotegreaterlessagreater">Algoritmos de encaminamiento <a name="Punto3"></a></h2>
 <h3 class="atx" id="encaminamiento-por-inundacion-lessa-namedouble-quotepunto31double-quotegreaterlessagreater">Encaminamiento por inundación <a name="Punto3.1"></a></h3>
