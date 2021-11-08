@@ -42,7 +42,7 @@ const QMAKE_SEND_WEBAPP = 4;
 const QMAKE_SEND_NODEJS = 5;
 const QMAKE_SEND_NODEJS_LOCAL = 6;  
 
-const QUIZ_KEYWORD = "&4stPXB@YAYpJuvv";
+const QUIZ_KEYWORD = "Fibh9rloOz+3pj8h";
 
 const USER_LOGIN_ANONYMOUS = "anonymous";
 const USER_EMAIL_ANONYMOUS = "anonymous@anonymous.nowhere";
@@ -83,7 +83,7 @@ const options =
 	matchingLockLeftCol: false,
 	markPercentage: false,
 	showPrintButton: true,
-	showLinkButton: false,
+	showLinkButton: true,
 	clearAlwaysHistory: true,
 	disableRightClickMenu: true,
 	needSaveQuiz: false,
