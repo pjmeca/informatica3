@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tema 2</title>
+  <title></title>
   <style>
   @font-face {
   font-family: octicons-link;
@@ -2592,9 +2592,92 @@ La segunda propuesta consiste en permitir que una organización pida a su ISP un
 <img width="615" data-align="center" alt="" src="assets/agregacion_rutas_ISP.png" title="">
 
 <h3 class="atx" id="encaminamiento-intradominio-vs-interdominio-lessa-namedouble-quotepunto13double-quotegreaterlessagreater">Encaminamiento intradominio vs. interdominio <a name="Punto1.3"></a></h3>
-<p>TBC.</p>
+<p>Al comienzo de este tema se veía cómo podemos aplicar algoritmos de encaminamiento para encontrar los caminos más cortos en una red. No obstante, si la red es muy grande, tanto el tamaño de los vectores de distancias como el número de mensajes de estado de enlace que necesitarían circular por la red sería muy elevado. Es por ello que, en el caso de Internet, en lugar de calcular las rutas a cada <em>posible</em> dirección IP destino, se hace para <strong>cada</strong> red destino, asumiendo que a través de los routers de esa red se pueden alcanzar a todos los hosts que haya.</p>
+<p>Si bien esta solución mejora <em>un poco</em> el problema, Internet es una red demasiado grande. Para conseguir simplificar el problema del encaminamiento, se optó por definir una estructura jerárquica en la red:</p>
+<img width="625" data-align="center" alt="" src="assets/jerarquia_internet.png" title="">
+
+<p>Así, todos los hosts se integran en redes tal cual vimos y, a su vez, conjuntos de redes se integran en los llamados <strong>sistemas autónomos</strong>. De esta forma, el encaminamiento se dividirá entre encaminamiento <em>interdominio</em> y encaminamiento <em>intradominio</em>:</p>
+<ul>
+<li><p><strong>Sistema Autónomo (AS)</strong>: Es un conjutno de redes administradas por una entidad común que comparten una estrategia de encaminamiento común.</p>
+</li>
+<li><p><strong>Encaminamiento interdominio</strong>: Son esquemas de encaminamiento cuya finalidad es encontrar un camino entre sistemas autónomos distintos. A este tipo de protocolos se les suele llamar <em>External Gateway Protocol (EGP)</em>.</p>
+</li>
+<li><p><strong>Encaminamiento intradominio</strong>: Son esquemas de encaminamiento encargados de facilitar el encaminamiento entre redes pertenecientes a un mismo sistema autónomo. A este tipo de protoclos se les suele llamar <em>Internal Gateway Protocol (IGP)</em>.</p>
+</li>
+</ul>
+<p>Esta división jerárquica del encaminamiento en Internet aporta fundamentalmente tres ventajas:</p>
+<ul>
+<li><p>Mejora la <strong>escalabilidad</strong> al permitir que no haga falta que todos los routers intercambien mensajes entre sí.</p>
+</li>
+<li><p>Facilita la <strong>compatibilidad</strong>, ya que el único requisto de un sistema autónomo para formar parte de Internet es usar el protocolo de routing externo correspondiente. Dentro de un AS se puede usar el protoclo de routing interno que se desee; de hecho, diferentes AS podrían usar diferentes protocolos de routing interno.</p>
+</li>
+<li><p>Ofrece <strong>extensibilidad</strong>, porque la red puede evolucionar con nuevos protocolos de routing dentro de sistemas autónomos sin necesidad de actualizar toda la red de Internet.</p>
+</li>
+</ul>
+<p>Existen bastantes protocolos de encaminamiento, pero nos centraremos en <strong>RIP</strong> (<em>Routing Information Protocol</em>) y <strong>OSPF</strong> (<em>Open Shortest Path First</em>) como protocolos intradominio; y <strong>BGP</strong> (<em>Border Gateway Protocol</em>) como protocolo interdominio.</p>
 <h2 class="atx" id="introduccion-al-encaminamiento-en-redes-lessa-namedouble-quotepunto2double-quotegreaterlessagreater">Introducción al encaminamiento en redes <a name="Punto2"></a></h2>
-<h2 class="atx" id="algoritmos-de-encaminamiento-lessa-namedouble-quotepunto3double-quotegreaterlessagreater">Algoritmos de encaminamiento <a name="Punto3"></a></h2>
+<p>El encaminamiento tiene que ver con las funciones que se realizan en el nivel de red para conseguir que los mensajes o datagramas puedan llegar a sus destinatarios.</p>
+<blockquote>
+<p>Llamamos <strong>encaminamiento</strong> al proceso por el cual los elementos de una red son capaces de hacer que los datagramas o mensajes circulen por ella para alcanzar su destino.</p>
+</blockquote>
+<p>En diferentes tecnologías de red, o incluso en un mismo tipo de red, se pueden emplear diferentes formas de realizar el encaminamiento. El objetivo del encaminamiento es buscar las rutas en una red que, para todo origen y destino, satisfagan una serie de condiciones.  Para la búsqueda de esas rutas se emplean algoritmos de encaminamiento:</p>
+<blockquote>
+<p>Denominamo <strong>algoritmo de encaminamiento</strong> al método por el cual se calculan las rutas en una red.</p>
+</blockquote>
+<p>Existen diferentes tipos de algoritmos de encaminamiento que pueden claseificarse en función de cómo abordan dicha búsqueda de rutas.</p>
+<p>Un aspecto importante que distingue las redes orientadas a conexión de las redes no orientadas a conexión tiene que ver con la forma en la que se toma la <em>decisión de encaminamiento</em>. En las primeras, como primero se establece un circuito virtual por el que luego circulan todos los mensajes, <mark>la decisión de qué camino utilizar se toma durante el establecimiento de dicho circuito virtual</mark>. Por contra, <mark>en las redes no orientadas a conexión, cada datagrama puede seguir un camino distinto</mark>; así, la decisión de encaminamientos e toma de forma independiente para cada datagrama.</p>
+<p>Aunque podríamos pensar que el problema del encaminamiento en redes es muy simple, la realidad es que en redes de un tamaño más grande donde pueden, además, haber cambios en la topología debido a fallos en los dispositivos de red o los enlaces, el problema es bastante más complejo. Es necesario utilizar diferentes algotimos para poder automatizar la búsqueda de caminos.</p>
+<h2 class="atx" id="algoritmos-de-encaminamiento-lessa-namedouble-quotepunto3double-quotegreater-lessagreater">Algoritmos de encaminamiento <a name="Punto3"> </a></h2>
+<p>Uno de los objetivos fundamentales del nivel de red es encaminar los mensajes o datagramas a su destino, por lo que es fundamental disponer de una forma de encontrar caminos para un determinado destino.</p>
+<blockquote>
+<p>Denominamos <strong>algoritmo de encaminamiento</strong> al mecanismo que nos permite averiguar una o varias rutas hacia un determinado destino de una red.</p>
+</blockquote>
+<p>Es deseable que los protocolos de encaminamiento cumplan una serie de propiedades deseables para el correcto funcionamiento de la red:</p>
+<ul>
+<li><p><strong>Corrección</strong>: Decimos que un algoritmo de encaminamiento es correcto si obtiene caminos que permitan alcanzar el destino.</p>
+</li>
+<li><p><strong>Robustez</strong>: Un algoritmo de encaminamiento es robusto si es capaz de converger a una solución tras posibles fallos hardware y software en la red.</p>
+</li>
+<li><p><strong>Simplicidad</strong>: La simplicidad se refiere a que el algoritmo sea fácilmente entendible, y eso contribuye a que se pueda implementar y depurar sin mucho esfuerzo incluso en dispositivos con capacidades de cómputo limitadas.</p>
+</li>
+<li><p><strong>Optimalidad</strong>: Un algoritmo de encaminamiento es óptimo cuando es capaz de obtener el mejor camino hacia el destino.</p>
+</li>
+<li><p><strong>Estabilidad</strong>: Un algoritmo es estable cuando es capaz de converger de forma rápida a una solución entre cambios de estado de la red.</p>
+</li>
+<li><p><strong>Equidad</strong>: Un protocolo es ecuánime cuando ofrece el mismo servicio a todos los usuarios.</p>
+</li>
+</ul>
+<p>La corrección es la más fundamental hasta el punto de ser un requisito exigible más que una propiedad deseable. Por detrás estarían la robustez y la simplicidad. Finalmente, la optimalidad, estabilidad y equidad pueden ser deseables, pero no imprescindibles para un correcto funcionamiento del encaminamiento. además, como se puede observar, algunas de estas propiedades deseables son contradictorias entre sí. Por ejemplo, un aprovechamiento óptimo de los recursos no siempre va unido al concepto de equidad.</p>
+<p>Los algoritmos de encaminamiento pueden clasificarse atendiendo a varios criterios. En función de quién es el que decide el camino a seguir, distinguimos dos tipos:</p>
+<ul>
+<li><p>Encaminamiento fijado en origen
+Es el encaminador origen quien conoce toda la topología de la red, calcula el camino a seguir y lo indica en el mensaje o datagrama a enviar. Cada encaminador intermedio solo tiene que mirar quien es el siguiente salto en el camino que estableció el origen y reenviarle el mensaje o datagrama.</p>
+</li>
+<li><p>Encaminamiento salto a salto
+Cada encaminador al que llega el mensaje calcula el camino hacia el destino y lo envía a su vecino correspondiente para seguir el camino. Es decir, el camino se va recalculando en cada salto.</p>
+</li>
+</ul>
+<p>Los algoritmos de encaminamiento pueden clasificarse en:</p>
+<ul>
+<li><p>Estáticos
+Se usa una información de la red previamente disponible, por lo que, una vez se calcula la ruta al destino, no cambia, ya que se asume una topología estática.</p>
+</li>
+<li><p>Cuasi-estáticos
+También se usa información previa, pero, si la ruta actual falla, entonces se calcula o se usa una ruta alternativa.</p>
+</li>
+<li><p>Adaptativos o dinámicos
+El algoritmo tiene en cuenta los posibles cambios que pueda haber en las condiciones de la red, y recalcula un camino nuevo cuando es necesario. Puede implementarse de tres formas:</p>
+<ul>
+<li><p>Centralizada: se envían los datos del estado actual de la red a un nodo, que calculará las rutas.</p>
+</li>
+<li><p>Aislada: cada nodo usa solo información local para decidir usar un camino u otro.</p>
+</li>
+<li><p>Distibuida: los nodos colaboran entre sí intercambiando información para el establecimiento y adaptación de los caminos.</p>
+</li>
+</ul>
+<p>Estos algoritmos son los más normales en las redes de datagramas y en Internet en particular.</p>
+</li>
+</ul>
 <h3 class="atx" id="encaminamiento-por-inundacion-lessa-namedouble-quotepunto31double-quotegreaterlessagreater">Encaminamiento por inundación <a name="Punto3.1"></a></h3>
 <h3 class="atx" id="encaminamiento-por-el-camino-mas-corto-lessa-namedouble-quotepunto32double-quotegreaterlessagreater">Encaminamiento por el camino más corto <a name="Punto3.2"></a></h3>
 <h3 class="atx" id="algoritmo-de-vector-de-distancias-lessa-namedouble-quotepunto33double-quotegreaterlessagreater">Algoritmo de vector de distancias <a name="Punto3.3"></a></h3>
