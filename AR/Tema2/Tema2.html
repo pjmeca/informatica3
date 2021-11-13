@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+  <title>Tema 2</title>
   <style>
   @font-face {
   font-family: octicons-link;
@@ -2277,6 +2277,7 @@ pre[class*="language-"] {
   <style>.markdown-body{}pre.front-matter{display:none!important;}/** Gris **/
 
 body{
+    font-family: "Times New Roman", Times, serif;
     background-color: WhiteSmoke;
     text-align:justify;
 }</style>
@@ -2867,18 +2868,508 @@ El algoritmo tiene en cuenta los posibles cambios que pueda haber en las condici
 <p>Las principales <span style="color:green">ventajas</span> de RIP son su sencillez y su amplia disponibilidad en casi cualquier equipamiento de red. Como <span style="color:red">desventajas</span> tenemos las mismas que tenía el algoritmo de vector de distancias: convergencia lenta, métrica poco dinámica y la posibilidad de crear bucles que cargarían bastante la red de mensajes RIP hasta ser detectados y converger, especialmente en redes bastane grandes.</p>
 <p>Este protocolo se usa fundamentalmente en encaminamiento intradominio y, fundamentalmente, en redes de un tamaño no muy grande.</p>
 <h2 class="atx" id="el-protocolo-ospf-lessa-namedouble-quotepunto5double-quotegreaterlessagreater">El protocolo OSPF <a name="Punto5"></a></h2>
+<p>El protocolo OSPF en su versión 2 se define en el RFC 2328. Se trata de un protocolo basado en estado de enlace mucho más completo que RIP y, por tanto, también es más complejo. Algunas características fundamentales son:</p>
+<ul>
+<li><p>Es un protocolo adaptativo que reacciona de forma rápida a cambios topológicos, al menos mucho más rápido que RIP.</p>
+</li>
+<li><p>Permite soportar tanto subnetting como CIDR.</p>
+</li>
+<li><p>Es capaz de encaminar en base a múltiples métricas y, en caso de existir caminos de igual longitud a un destino, es capaz de balancear carga entre los diferentes caminos existentes.</p>
+</li>
+<li><p>Para mejorar la escalabilidad, es capaz de organizar un sistema autónomo en áreas de menor tamaño de tal forma que se pueda aliviar la sobrecarga de distribución de información de encaminamiento por todo el sistema autónomo.</p>
+</li>
+<li><p>Soporta integración con redes externas, así como la mejora de su eficiencia en redes locales mediante la elección de routers designados.</p>
+</li>
+</ul>
 <h3 class="atx" id="vision-general-lessa-namedouble-quotepunto51double-quotegreaterlessagreater">Visión general <a name="Punto5.1"></a></h3>
+<p>El funcionamiento general de OSPF es similar al algoritmo de estado de enlace. Cada router OSPF mantiene una base de datos con la topología del sistema autónomo. La información allí contenida proviene de los mensajes de estado de enlace que inundarán diferentes routers de la red en mensajes <em>Link-State Advertisements</em> (LSA). Aplicando el algoritmo de Dijkstra, cada router calculará el árbol de caminos más cortos a cada destino y así podrá calcular su tabla de rutas. Las redes destino que se hayan podido aprender de otrs ASs ( como pueden ser las rutas externas), se añaden a la base de datos como nodos hoja del router que aprendió esas rutas y las anunció en su LSA.</p>
+<p>Uno de los aspectos más importantes de OSPF es el concepto de área. Las áreas en OSPF están formadas por un conjunto de routers y permiten añadir un nivel adicional de jerarquía en el enrutamiento. El objtivo del área es minimizar el tráfico de control OSPF necesario en la red. Dado que inundar cada LSA de cada router por todo el sistema autónomo no sería escalable, lo que propone OSPF es dividir el AS en áreas de menor tamaño, de forma que los routers solo tienen que inundar sus LSA dentro de su área. Para aplicar Dijkstra, un router solo tendrá que conocer la topología de su área. Es más, la topología de un área es invisible fuera de ella. Para que esta mejora sea posible, se establecen una serie de condiciones que han de cumplirse:</p>
+<ul>
+<li><p>Siempre tiene que haber como mínimo un área con identificador 0, también llamada <em>backbone</em>.</p>
+</li>
+<li><p>Todas las otras áreas han de tener conectividad con el área 0 mediante al menos un router que tenga al menos una interfaz de red en cada una de dichas áreas (router frontera).</p>
+</li>
+<li><p>Un router puede pertencer simultáneamente a dos o más áreas, en cuyo caso debe mantener la base de datos de rutas y hacer los cálculos de los caminos más cortos para cada una de ellas.</p>
+</li>
+<li><p>Dos áreas solo pueden hablar entre sí a través del área 0 o <em>backbone</em>. El router frontera entre un área y el área 0 se encargará de resumir la información de su área para que se inunde en el área 0, así como de inundar dentro de su propia área los resúmenes de rutas que reciba del área 0.</p>
+</li>
+</ul>
+<p>En base a esta división en áreas, y a la función que realizan dentro de la jerarquía, se clasifican los routers OSPF en:</p>
+<ul>
+<li><p><strong>Routers internos</strong>: solamente están conectados a redes del mismo área. Solo deben mantener en su base de datos la topología del área, sus LSAs también se inundan solo dentro de su área.</p>
+</li>
+<li><p><strong>Routers frontera de área (ABR)</strong>: tienen interfaces que les conectan a diferentes áreras. Deben mantener una base de datos de la topología de red independiente para cada área. Entre sus funciones está la de generar resúmenes de su área (<em>summary LSAs</em>) y propagarlos al área <em>backbone</em> para que puedan inundar el resto de áreas. Estos resúmenes contienen un listado de las redes —con los costes de alcanzarlas— dentro del área. Así, no se propaga la topología interna del área fuera de la misma.</p>
+</li>
+<li><p><strong>Routers <em>backbone</em></strong>: están conectados con alguna red del área 0. Su función fundamental es ayudar en la difusión de los LSAs dentro del área <em>backbone</em>.</p>
+</li>
+<li><p><strong>Routers frontera de AS (ASBR)</strong>: tienen conectividad mediante alguna de sus interfaces con redes externas al AS. Su función será difundir en el AS las rutas para que dichas redes sean conocidas dentro del AS.</p>
+</li>
+</ul>
+<p>En función de las áreas que atraviesan, las rutas también podrán ser de diferentes tipos:</p>
+<ul>
+<li><p><strong>Rutas intra-área</strong>: origen y destino de la ruta están en un mismo área.</p>
+</li>
+<li><p><strong>Rutas inter-área</strong>: origen y destino de la ruta están en áreas distintas de un mismo AS.</p>
+</li>
+<li><p><strong>Rutas inter-AS</strong>: origen y destino están en ASs distintos.</p>
+</li>
+</ul>
+<p>Podemos ver un ejemplo de red OSPF a continuación:</p>
+<img width="549" data-align="center" alt="" src="assets/jerarquia_as_ospf.png" title="">
+
+<p>Donde podemos ver tres áreas: <em>backbone</em>, área 1 y área 2. El router F sería un router interno, el router C es un router frontera de área, el router B es un router de <em>backbone</em> y el router H es un router frontera de AS. La ruta D-G-H es una ruta inter-área, la ruta F-C,C-A-D,D-G-H es una ruta inter-área y, finalmente, las rutas del tipo A-D,D-G-H,H-... son rutas inter-AS.</p>
+<p>Un ASBR no tiene porqué ser un router del área 0, sino que puede estar en cualquiera de las áreas.</p>
 <h3 class="atx" id="formato-de-los-mensajes-ospf-lessa-namedouble-quotepunto52double-quotegreaterlessagreater">Formato de los mensajes OSPF <a name="Punto5.2"></a></h3>
+<p>La cabecera OSPF viaja directamente sobre datagramas IP con tipo de protocolo número 89.</p>
+<img width="319" data-align="center" alt="" src="assets/cabecera_ospf.png" title="">
+
+<ul>
+<li><p><strong>Version</strong>: indica la versión de protocolo que se está usando. La <code>0x02</code> sería la versión 2 y la <code>0x03</code> indicaría la versión 3.</p>
+</li>
+<li><p><strong>Type</strong>: es el tipo de mensajes. Existen 5 tipos de mensajes OSPF (no confundir con los tipos de LSA):</p>
+<ul>
+<li><p><code>0x01</code> - Hello
+Se usa para conocer la topología local.</p>
+</li>
+<li><p><code>0x02</code> - Database description
+Se usa para establecer adyacencias, es decir, mantener sincronizada la información entre vecinos.</p>
+</li>
+<li><p><code>0x03</code> - Link State Request
+También se usa para establecer adyacencias.</p>
+</li>
+<li><p><code>0x04</code> - Link State Update
+Inunda la red con mensajes LSA. Puede contener uno o más LSA.</p>
+</li>
+<li><p><code>0x05</code> - Link State Ack
+Asentimiento que confirma la recepción correcta de un <em>Link State Update</em>.</p>
+</li>
+</ul>
+</li>
+<li><p><strong>Packet Length</strong>: indica la longitud de todo el paquete OSPF en bytes.</p>
+</li>
+<li><p><strong>Router ID</strong>: identificador único del router que envía el mensaje. Si no lo configura el administrador, se usa automáticamente la mayor de las direcciones IP que tenga asignado el router en alguna de sus interfaces.</p>
+</li>
+<li><p><strong>Area ID</strong>: identificador del área a la que pertenece el mensaje que envía el router.</p>
+</li>
+<li><p><strong>Checksum</strong>: suma de comprobación de 16 bits que cubre todo el paquete excepto el campo <code>authentication</code>.</p>
+</li>
+<li><p><strong>Autype</strong>: tipo de autenticación empleada.</p>
+<ul>
+<li><p><code>0</code> - Sin autenticación</p>
+</li>
+<li><p><code>1</code> - Texto plano</p>
+</li>
+<li><p><code>2</code> - MD5</p>
+</li>
+</ul>
+</li>
+<li><p><strong>Authentication</strong>: información de autenticación que varía en función del mecanismo de autenticación empleado (nada, clave compartida o resumen MD5 según el caso).</p>
+</li>
+</ul>
 <h3 class="atx" id="intercambio-de-mensajes-hello-lessa-namedouble-quotepunto53double-quotegreaterlessagreater">Intercambio de mensajes Hello <a name="Punto5.3"></a></h3>
+<p>La primera parte del funcionamiento de OSPF consiste en conocer a los vecinos para poder conocer el estado de los enlaces. Cada router envía por cada una de las interfaces donde tenga habilitado el protocolo OSPF mensajes <em>Hello</em> de forma periódica. Por defecto, cada 10 segundos se envía un mensaje <em>Hello</em> y un vecino se considera inalcanzable si no se reciben mensajes <em>Hello</em> de él en 40 segundos, aunque estos valores puede cambiarlos el administrador de la red.</p>
+<p>Estos mensajes incluyen el router ID del emisor, el área ID así como una lista de vecinos conocidos. Así, se puede comprobar si existe bidireccionalidad entre ambos vecinos. Si en el mensaje <em>Hello</em> de mi vecino aparezco listado como vecino, entonces es seguro que disponemos de un enlace bidireccional. Estos mensajes se envían a una dirección multicast denominada <em>AllOSPFRouters</em> (224.0.0.5) con TTL=1 para que solo sean recibidos por aquellos equipos conectados a la red que sean routers OSPF.</p>
+<p>Una de las funciones adicionales de los mensajes <em>Hello</em> es el establecimiento y mantenimiento de las relaciones de adyacencia. Solo se podrá intercambiar información de LSAs entre aquellos routers que tengan establecida una relación de adyacencia. No todos los vecinos se consideran routers adyacentes. En redes donde pueda haber varios routers, para reducir la sobrecarga de control, solo se establecen relaciones de adyacencia con aquellos routers vecinos que realmente sea necesario. Los routers adyacentes mantendrán sincronizadas sus bases de datos de rutas y, además, un router siempre comunicará cualquier cambio a todos sus vecinos con los que tenga establecida una relación de adyacencia.</p>
+<p>Un caso muy común que sirve de ejemplo en el que no se establecen adyacencias con todos los vecinos se da en las redes de acceso múltiple cuando hay varios routers OSPF conectados al mismo segmento de red. Viendo la siguiente figura:</p>
+<img data-align="center" alt="" title="" src="assets/reduccion_adyacencias_ospf.png">
+
+<p>Si OSPF estableciese adyacencias con todos los vecinos, cada router debería enviar el estado de sus enlaces a los otros <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.66666em;vertical-align:-0.08333em;" class="strut"></span><span class="mord mathnormal">n</span><span style="margin-right:0.2222222222222222em;" class="mspace"></span><span class="mbin">−</span><span style="margin-right:0.2222222222222222em;" class="mspace"></span></span><span class="base"><span style="height:0.64444em;vertical-align:0em;" class="strut"></span><span class="mord">1</span></span></span></span> routers de dicho segmento de red, necesitando por tanto, para intercambiar toda la información entre todos, un total de <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:1.355em;vertical-align:-0.345em;" class="strut"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span style="height:1.01em;" class="vlist"><span style="top:-2.6550000000000002em;"><span style="height:3em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span><span style="top:-3.23em;"><span style="height:3em;" class="pstrut"></span><span style="border-bottom-width:0.04em;" class="frac-line"></span></span><span style="top:-3.485em;"><span style="height:3em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mbin mtight">×</span><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">1</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span style="height:0.345em;" class="vlist"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span> mensajes cada vez intercambien información. En estos casos es mucho más efectivo elegir un único router con el que todos establecen adyacencia y este mantenga a todos sincronizados. En el caso de OSPF, por la tolerancia a fallos, se eligen dos routers: el <strong>router designado</strong> (DR) y el <strong>backup router</strong> (BDR). Cada uno de los routers de la red establecerá una adyacencia con cada uno de estos dos que, a su vez, también establecerán entre ellos. En la topología de la derecha podemos ver cómo el número de adyacencias es menor.</p>
+<p>El proceso de <strong>elección del router designado</strong> consiste en:</p>
+<ol>
+<li><p>Si existe un router designado, se mantiene.</p>
+</li>
+<li><p>Si no, en base a la información de los mensajes <em>Hello</em> se elige aquel que tiene un valor más alto en el campo <em>Prioridad</em>. Este valor lo establece el administrador en la configuración de cada uno de los routers.</p>
+</li>
+<li><p>Si hay un empate de prioridades, se elige el router que tenga un <em>Router ID</em> mayor.</p>
+</li>
+</ol>
+<p>El BDR será justo el siguiente siguiendo los mismos criterios.</p>
+<p>Una vez se han elegido el DR y el BDR, se encargarán de mantener adyacencias con el resto de routers de la red de medio compartido. Para ello, sincronizarán las bases de datos de estado de enlace mediante la recepción y el envío de LSAs con destino el grupo multicast <em>AllDRouters</em> (224.0.0.6). El resto de routers solo establecerán adyacencias con el DR y el BDR, pero no entre sí.</p>
+<p>El DR es el responsable de resumir la topología de la red de medio compartido e inundar dicha información por todo el área a la que pertenece la red. A este resumen de la topología se le llama <em>Network</em> o LSA de tipo 2. Por su parte, en caso de que el DR falle, sería el BDR el responsable de hacer este resumen e inundarlo por el área.</p>
 <h3 class="atx" id="intercambio-de-bases-de-datos-lessa-namedouble-quotepunto54double-quotegreaterlessagreater">Intercambio de bases de datos <a name="Punto5.4"></a></h3>
+<p>Cuando dos routers OSPF se ven por primera vez, han de proceder a intercambiarse y sincronizar la información de sus bases de datos.</p>
+<p>Cada router almacena dos bases de datos denominadas <em>Router Link States</em> y <em>Network Link States</em>. La primera almacena información sobre el último LSA recibido de cada uno de los routers de la red. La segunda, para aquellas partes de la red que se resumen como redes en lugar de conocer la topología detallada, contiene el último LSA recibido anunciando cada una de esas redes.</p>
+<p>Para hacer esta sincronización inicial, los routers se envían mensajes <em>Database Description</em> por unicast que contienen la lista de mensajes LSA que hay en sus bases de datos (no su contenido). Si el vecino que se acaba de conocer tiene LSAs distintos a los del router actual, o incluso dispone de versiones más actualizadas que las almacenadas localmente, entonces este solicitará mediante un mensaje <em>Link State Request</em> también unicast, aquellos que necesita. El router vecino responderá con un <em>Link State Update</em> (multicast) incluyendo los LSA completos solicitados. una vez recibidos, el nodo confirma la recepción correcta enviando un <em>Link State ACK</em> (multicast) de vuelta.</p>
+<img width="347" data-align="center" alt="" src="assets/sincronizacion_ospf.png" title="">
+
+<p>En este ejemplo, podemos ver como el router A, que lleva un tiempo arrancado, envía un mensaje <em>Hello</em> al router B en cuanto este último arranca, B le responde con otro mensaje <em>Hello</em>. Una vez descubren que son vecinos, intercambian mediante los mensajes unicast <em>Database Description</em> los contenidos de sus vases de datos. Después, cada uno le pide al otro los LSAs que necesita y, finlmente, se envían los mensajes <em>Link State Update</em> y <em>Link State ACK</em> para finalizar la sincronización de la información.</p>
+<p>Mientras no haya cambios topológicos, los routers OSPF vecinos solo intercambian mensajes <em>Hello</em>. Sin embargo, ante algún cambio en la topología o las condiciones de los enlaces, el router que lo detecta envía de nuevo los LSAs correspondientes en un mensaje <em>Link State Update</em>. De nuevo, los routers que reciben los nuevos LSAs asienten con un <em>Link State ACK</em>.</p>
 <h3 class="atx" id="tipos-de-lsas-lessa-namedouble-quotepunto55double-quotegreaterlessagreater">Tipos de LSAs <a name="Punto5.5"></a></h3>
+<p>OSPF usa 5 tipos de mensajes distintos para cumplir su cometido. Además, a la hora de propagar información de routing por la red, OSPF también utiliza diferentes tipos de LSAs, de manera que muchas veces pueden confundirse los LSAs con mensajes OSPF. En realidad, los LSAs solo viajan sobre mensajes <em>Link State Update</em> que se envían a la dirección multicast <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.64444em;vertical-align:0em;" class="strut"></span><span class="mord">2</span><span class="mord">2</span><span class="mord">4</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">5</span></span></span></span> con TTL=1 y por aquellas interfaces donde hay un vecino adyacente. Un mismo mensaje <em>Link State Update</em> puede transportar varios LSAs en su interior que incluso pueden ser LSAs de tipos distintos.</p>
+<p>Los LSAs son los que contienen información sobre el estado de los enlaces, por lo que para poder entender bien el funcionamiento de OSPF se hace imprescindible conocerlos. En OSPFv2 se distinguen 7 tipos básicos de LSAs en función de la información que transportan:</p>
+<ol>
+<li><p><strong>Router LSA</strong>: contienen el router-ID de cada router y sus correspondientes enlaces, incluyendo cada uno su máscara de red, dirección de red IP y coste. Cada router OSPF construye un LSA de tipo 1 con su información y lo inunda dentro del área a la que pertenece. Un router envía un LSA tipo 1 por cada área a la que está conectado. Si un router tiene conectividad externa a otras redes (es un ASBR), lo marca activando un bit dentro del mensaje router LSA. Este mensaje se inunda por todo el área y nunca sale de ella.</p>
+</li>
+<li><p><strong>Network LSA</strong>: solo envían los DR de una LAN de medio compartido, indicando las direcciones IP del DR y del resto de routers OSPF, el prefijo de red y la máscara de red de esa subred. Se inunda también por todo el área y sirve para ayudar también a conocer la topología al igual que los anteriores. Este mensaje se inunda por todo el área y nunca sale de esta. Por un área podría o no circular LSAs de tipo 2, en función de si hay o no segmentos de red de medio compartido donde haya varios routers OSPF.</p>
+</li>
+<li><p><strong>Network summary LSA</strong>: los LSA de tipo 1 y tipo 2 no fluyen nunca fuera de un área porque los ABR no los inundan por las interfaces que conectan con otras áreas. En su lugar, un ABR genera un LSA de tipo 3 para cada una de las redes que existen dentro de un área y las envía a sus vecinos de otras áreas para que en la otra área sepan que dichas redes existen y están alcanzables a través del ABR. Sin embargo, no se revelan los detalles de la topología interna del área fuera de ella.</p>
+</li>
+<li><p><strong>ASBR summary LSA</strong>: este tipo de LSA es similar al anterior en cuanto a que lo genera el ABR de un área donde hay algún ASBR y lo propaga al área 0 para que sea inundado en el resto de áreas. Un ABR sabe que tiene que generar un LSA de tipo 4 al ver el bit activo en el LSA de tipo 1 que reciba dicho router que es un ASBR, o el LSA de tipo 2 que reciba donde se aparezca dicho router. Este LSA en lugar de incluir el coste de llegar a las redes del área, lo que incluye son costes de llegar hacia los ASBR que pueda haber dentro del área. Es decir, para cada ASBR del área incluye su IP y el coste de llegar a él desde el ABR.</p>
+</li>
+<li><p><strong>External LSA</strong>: incluye información sobre redes que están fuera del sistema autónomo y el coste de llegar a las mismas. Este tipo de LSAs los generan los ASBR para cada ruta externa que conozcan y se propagan completamente por todo el sistema autónomo. Si así lo configurase el administrador, un ASBR también podría anunciar una red (0.0.0.0) en un LSA tipo 5 para anunciar una ruta por defecto para llegar a cualquier destino cuya IP esté fuera del AS.</p>
+</li>
+<li><p><strong>Multicast LSA</strong>: actualmente no está soportado y no se usa.</p>
+</li>
+<li><p><strong>External LSA</strong>: también se conoce como <em>Not-so-stubby Area</em> (NSSA) LSA, ya que solo se usa en ese tipo de áreas especiales llamadas NSSA. En dichas áreas, no se permiten LSAs de tipo 5, por lo que, cuando algún router de ese tipo de área tiene conectividad externa, se anuncian las rutas externas aprendidas en este LSA de tipo 7 en lugar de en un LSA de tipo 5.</p>
+</li>
+</ol>
+<p>Por lo tanto, no todos los LSAs se propagan por toda la red (excepto los LSA de tipo 5) intentando justamente reducir el tráfico de control. La información que es necesario que viaje por la red en el caso de tener sistemas autónomos de un tamaño grande. El motivo fundamental que nos permite usar esta estructura jerárquica es que a la hora de hacer el encaminamiento, un router lo que hace es que cuando le llega eld atagrama elige el siguiente salto al destino. Por tanto, para una red destino dentro de un área, un router de fuera solo necesita saber su siguiente salto hacia el ABR que ofrece un menor coste, y ya será el ABR y el resto de los routers de dentro del área los que se encargarán de seguir enrutando el datagrama por el camino más corto. Al fin y al cabo, el principio de optimalidad nos garantiza que si cada router envía el mensaje a su vecino que forma parte del camino más corto hacia el destino, al final el mensaje acaba viajando por el camino más corto al destino.</p>
+<p>Analizaremos la siguiente imagen:</p>
+<img width="607" data-align="center" alt="" src="assets/propagacion_lsa_ospf.png" title="">
+
+<p>Podemos ver cómo está formada por 4 áreas. El área 1 contiene las redes 1.A hasta 1.D, el área 2 las 2.A hasta 2.C y el área 3.A hasta 3.D.</p>
+<p>Centrándonos en el área 1, cada uno de los routers, a traves del procedimiento mencionado de sincronización de bases de datos de rutas, generará su LSA de tipo 1 indicando el estado de sus enlaces y lo enviará a sus vecinos, que a su vez lo inundará por dentro de todo el área. En las redes de medio compartido (hay más de un router OSPF) se elegirá un router designado que también inundará por todo el área sus LSAs de tipo 2 informando de las redes de ese segmento de red. Con toda la información inundada por todo el área, los routers (incluído el ABR) conocen la topología completa, por lo que son capaces de añadir a su tabla de rutas, para cada una de las redes, quién es su mejor vecino aplicando el algoritmo de Dijkstra. El mismo procedimiento sucede en las áreas 2 y 3 con sus respectivas redes.</p>
+<p>En este estado, cada router solo sabría encaminar a destinos dentro de su propio área. Para que un router de un área pueda saber cómo llegar a redes de otras áreas, los ABR se encargarán de enviar por el interfaz de red que les une al área backbone un mensaje <em>LS Update</em> que incluye LSAs de tipo 3 que contienen todas las redes que hay dentro de su área y el coste de llegar a ellas. En concreto, si la métrica fuese el número de saltos, las máscaras de red de 24 bits y el <em>Router-ID</em> del ABR del área 1 fuese <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.64444em;vertical-align:0em;" class="strut"></span><span class="mord">1</span><span class="mord">3</span><span class="mord">0</span><span class="mord">.</span><span class="mord">2</span><span class="mord">0</span><span class="mord">6</span><span class="mord">.</span><span class="mord">1</span><span class="mord">.</span><span class="mord">1</span><span class="mord">9</span></span></span></span>, la información de un LSA tipo 3 que enviaría el ABR del área 1 sería:</p>
+<pre><code class="fenced-code-block language-bash">Link State ID: <span class="token number">1</span>.A
+Advertising Router: <span class="token number">130.206</span>.1.19
+Netmask: <span class="token number">255.255</span>.255.0
+Metric: <span class="token number">3</span>
+
+Link State ID: <span class="token number">1</span>.B
+Advertising Router: <span class="token number">130.206</span>.1.19
+Netmask: <span class="token number">255.255</span>.255.0
+Metric: <span class="token number">3</span>
+
+Link State ID: <span class="token number">1</span>.C
+Advertising Router: <span class="token number">130.206</span>.1.19
+Netmask: <span class="token number">255.255</span>.255.0
+Metric: <span class="token number">4</span>
+
+Link State ID: <span class="token number">1</span>.D
+Advertising Router: <span class="token number">130.206</span>.1.19
+Netmask: <span class="token number">255.255</span>.255.0
+Metric: <span class="token number">4</span></code></pre>
+<p>La información de los LSA tipo 3 de los ABR de las otras áreas sería similar, pero anunciando las redes 2.A al 2.C y 3.A a 3.D respectivamente.</p>
+<p>Estos LSAs de tipo 3 se inundarán por el área backbone, por lo que también serán recibidos por los ABR de las otras áreas. En este instante, los ABRs sabrían llegar tanto a redes de dentro de su área, porque ya lo aprendieron antes con los LSAs de tipo 1 y 2, como a redes de otras áreas porque acaban de recibir los LSAs de tipo 3 de los otros ABRs.</p>
+<p>Para que los routers internos de cualquiera de las tres áreas pueda disponer en su tabla de rutas de entradas para saber llegar a redes de otras áreas, los ABR inundan dentro de su área los LSAs de tipo 3 que han recibido de los otros LSAs. De esta forma, los routers internos del área 1 aprenderán a llegar a las redes 2.A  a 2.C y 3.A a 3.D, los del área 2 aprenderán a llegar también a las redes 1.A a 1.D y 3.A a 3.D y, finalmente, los del área 3 también sabrán llegar a las redes 1.A a 1.D y 2.A a 2.C. La ventaja de este esquema radica en que los mensajes LSA de tipo 3 contienen la información suficiente para que desde un área se aprenda a llegar a redes de otras áreas, pero no se necesita enviar toda la topología completa del área, que sería mucho más costoso en cuanto a mensajes y volumen de tráfico de control a enviar.</p>
+<p>En cuanto a los LSA de tipo 4, los generan los ABR y se usan para anunciar rutas hacia los ASBR. En el ejemplo, el ABR del área 3, al recibir el LSA de tipo 1 del ASBR con el bit de ASBR activo, enviaría hacia el área backbone un LSA de tipo 4 anunciando la IP del ASBR y el coste de llegar a él. Este mensaje llegaría a los otros ABR que lo propagarían para que los routers de dentro de un área sepan llegar al ASBR que hay en el área 3. De forma similar, como el otro ASBR está ya en el área 0, y los ABRs forman parte de su área y también del backbone, los ABR ya conocen la topología interna del área 0 y están informados de que hay un ASBR en dicha área. Por tanto, ellos mismo generan un LSA de tipo 4 informando de la IP del ASBR del área 0 y su coste.</p>
+<p>Para anunciar redes externas, son los ASBR directamente los que generan LSAs de tipo 5 indicando para cada red externa que han aprendido su dirección de red y su coste. Estos LSAs de tipo 5 se inundan por toda la red, por lo que todo router del sistema autónomo puede añadir a su tabla de rutas una entrada apuntando a esas redes y poner como siguiente salto su vecino que esté en el camino más corto hasta el ASBR que anunció dicha ruta, una vez aplicado Dijkstra sobre su visión de la topología de red.</p>
+<p>Un aspecto a considerar en el caso de las rutas externas es que, en muchos casos, puede suceder que el coste empleado por el protocolo externo a nuestro AS use unidades distintas a las que usa OSPF dento de nuestro AS. A la hora de hacer la redistribución de esas rutas, hay que ver con qué coste las anuncia el ASBR. OSPF permite al administrador elegir entre dos tipos de métricas:</p>
+<ul>
+<li><p><strong>Tipo 1</strong>: el coste que anuncia el ASBR se va actualizando conforme se propaga esa ruta, por lo que para un router que esté a un coste de <em><span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.43056em;vertical-align:0em;" class="strut"></span><span class="mord mathnormal">x</span></span></span></span></em> unidades del ASBR, el coste de llegar a esa ruta externa será el que anuncia el ASBR <em><span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.66666em;vertical-align:-0.08333em;" class="strut"></span><span class="mord">+</span><span class="mspace">&nbsp;</span><span class="mord mathnormal">x</span></span></span></span></em> unidades.</p>
+</li>
+<li><p><strong>Tipo 2</strong>: el coste que anuncia el ASBR se mantiene constante dentro de todo el AS. Por tanto, para cualquier router de la red OSPF, el coste de llegar a ese destino externo será el mismo que anunció el ASBR.</p>
+</li>
+</ul>
+<p>El primer tipo de métrica puede ser interesante para cuado se desea hacer distribución de la carga entre los diferentes ASBR, porque si cada ASBR anuncia el mismo coste, cada router del AS irá hacia esa red externa por su camino hacia el ASBR más cercano.</p>
+<p>El segundo caso puede ser interesante cuando se prefiere que el tráfico vaya por un ASBR hacia esa red externa y, solo si este falla, pueda ir por el otro. En tal caso, el administrador puede configurar los ASBRs para que anuncien costes distintos de forma que, como el coste no varía dentro del AS, todos los routers irían por el ASBR que anuncia un menor coste (salvo que este no esté disponible).</p>
+<p>Una vez completado el proceso, todos los routers conocerían las rutas a cada una de las redes de cada una de las áreas así como a las redes externas a las que haya conectividad a través de los ASBR.</p>
 <h3 class="atx" id="tipos-de-areas-lessa-namedouble-quotepunto56double-quotegreaterlessagreater">Tipos de áreas <a name="Punto5.6"></a></h3>
+<p>En algunos escenarios de red particulares donde las áreas cumplen ciertas propiedades, el administrador de red podría optimizar aún más el tráfico de control del protocolo OSPF, evitando tener que distribuir cierta información de rutas que igual no es necesaria para el correcto funcionamiento del encaminamiento.</p>
+<h4 class="atx" id="resumen-de-rutas">Resumen de rutas</h4>
+<p>Cuando hay redes de dentro de un área que tienen rangos de direccionamiento contiguos y pueden agregarse, un ABR realmente no necesitaría enviar un LSA de tipo 3 para cada una de las redes internas del AS. Podría bastar con enviar un LSA de tipo 3 para cada conjunto de redes que puedan ser agregables usando una máscara de red que agrupe a todas. Esto se conoce como <em>route summarization</em>.</p>
+<p>En ele ejemplo anterior, si suponemos que las redes 1.A a 1.D tienen las siguientes direcciones:</p>
+<pre><code class="fenced-code-block language-bash"><span class="token number">130.206</span>.0.0/24
+<span class="token number">130.206</span>.1.0/24
+<span class="token number">130.206</span>.2.0/24
+<span class="token number">130.206</span>.3.0/24</code></pre>
+<p>El ABR del área 1 podría simplemente anunciar un único LSA de tipo 3 incluyendo como red la <code>130.206.0.0/22</code>, de forma que el resto de routers del sistema autónomo aprendería a llegar a las 4 redes destino y solo necesitarían una entrada en su tabla de rutas.</p>
+<p>Un ASBR también podría resumir diferentes rutas externas en un menor número de LSAs de tipo 5.</p>
+<h4 class="atx" id="areas-especiales">Áreas especiales</h4>
+<p>Hasta este punto, se ha asumido siempre un comportamiento normal de lo que se llama un <em>área estándar</em>. Sin embargo, para algunos escenarios de red particulares, un administrador puede plantearse el uso de los siguientes tipos de áreas para mejorar la eficiencia de OSPF.</p>
+<ul>
+<li><p><strong>Stub area</strong>: se pueden usar cuando dentro de un área no hay ningún ASBR y, para llegar a redes externas al AS, cualquier router de dentro del área va a tener que pasar en cualquier caso por alguno de los ABR. En estos casos, el administrador puede ahorrarse la inundación de mensajes LSA de tipo 4 y 5 de otras áreas que harían los ABR hacia dentro del área. Esto es así porque, en cualquier caso, la ruta hacia esos destinos externos al AS para los routers internos siempre va a ir por su camino más corto hasta el ABR correspondiente.
+Si se configura como <em>stub</em>, el ABR se encarga de filtrar todos los LSA de tipo 4 y 5 y, en su lugar, genera un LSA de tipo 3 anunciando una ruta por defecto (red 0.0.0.0). Los routers internos tendrán en su tabla de rutas entradas para llegar a redes de su propia área, entradas para llegar a redes de las otras áreas y una ruta por defecto para llegar al resto de redes externas.</p>
+</li>
+<li><p><strong>Totally Stub area</strong>: se pueden usar cuando, incluso para llegar a otras áreas, la única alternativa pasa por un único ABR. Es decir, los routers internos del área, para llegar a cualquier red que no sea de su propia área, irían por su siguiente salto en su camino más corto hacia el ABR, independientemente de la información que llegue de fuera.
+Si se configura como <em>totally stub</em>, el ABR no dejaría pasar hacia dentro del área los LSAs de tipo 4, tipo 5 ni de tipo 3. En su lugar, el ABR genera un LSA de tipo 3 anunciando una ruta por defecto. Así, en la tabla de rutas de los routers internos solo habría entradas para poder llegar a las redes de dentro del propio área y una ruta por defecto para cualquier otra red tanto de otras áreas como externas.</p>
+</li>
+<li><p><strong>Not-so-stubby area (NSSA)</strong>: es una variación del área <em>stub</em> en la que sí se permite que haya routers ASBR dentro del área, pero no interesa que lleguen rutas externas de otras áreas en forma de LSAs de tipo 5. Al configurar un área como NSSA, el ABR no difunde los LSAs de tipo 5 de otras áreas dentro del área NSSA. En este caso, los ASBR en un área NSSA, en lugar de generar LSAs de tipo 5, generan LSAs de tipo 7. Funcionalmente son iguales, pero se envían de tipo 7 para diferenciarlos de los de tipo 5.</p>
+</li>
+<li><p><strong>Totally NSSA</strong>: es una variante de la NSSA en la que tampoco queremos que el ABR deje entrar LSAs de tipo 3 a otras áreas. Los routers internos del área tendrán solo entradas en sus tablas de rutas para redes internas al área, redes externas aprendidas con los LSAs de tipo 7 de los ASBR y, finalmente, una ruta por defecto que anunciaría el ABR para poder llegar a redes del resto de áreas y redes externas alcanzables desde otras áreas que no sean alcanzables desde los ASBR internos al área.
+Si una red externa es alcanzable tanto por un ASBR interno al área como por un ASBR de otra área, los routers internos siempre preferirían ir por el ASBR interno, ya que las rutas tendrían preferencia en la tabla de rutas frente a una ruta por defecto.</p>
+</li>
+</ul>
+<p>Estos mecanismos pueden dar un cierto grado de flexibilidad al administrador para poder controlar por dónde fluye el tráfico a determinados destinos y, así, intentar conseguir un mejor aprovechamiento de los enlaces en base a sus intereses.</p>
 <h3 class="atx" id="encaminamiento-multi-metrica-lessa-namedouble-quotepunto57double-quotegreaterlessagreater">Encaminamiento multi-métrica <a name="Punto5.7"></a></h3>
+<p>En lugar de calcular un camino más corto para cada destino, realmente OSPF calcula cinco caminos más cortos, uno para cada métrica. Las cinco métricas que se definieron para los datagramas IP eran los 5 valores posibles que podría tomar el campo <em>Type of service (ToS)</em> de la cabecera IP, y que eran métricas asociadas a los enlaces de la red:</p>
+<ul>
+<li><p><code>0x00</code>: número de saltos, equivalente a asignar coste 1 a cada enlace.</p>
+</li>
+<li><p><code>0x02</code>: coste monetario fijado por el administrador al configurar cada enlace.</p>
+</li>
+<li><p><code>0x04</code>: fiabilidad en términos del histórico reciente de tasa de pérdida de paquetes.</p>
+</li>
+<li><p><code>0x08</code>: velocidad de transmisión del enlace (duración de un bit en unidades de 10 ns).</p>
+</li>
+<li><p><code>0x10</code>: tiempo de transmisión + tiempo de encolado.</p>
+</li>
+</ul>
+<p>Cada router calculaba cinco <em>spanning trees</em> distintos aplicando Dijkstra con las 5 métricas diferentes asociadas al coste de los enlaces y, en función de la IP destino y del ToS de cada datagrama, se elegía el siguiente salto del camino según el <em>spanning tree</em> que correspondiese.</p>
+<p>Hoy en día, en que el uso del campo ToS ya no está permitido por los estándares, los routers OSPF usan como métrica de los enlaces el ancho de banda predeterminado (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.8141079999999999em;vertical-align:0em;" class="strut"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span style="height:0.8141079999999999em;" class="vlist"><span style="top:-3.063em;margin-right:0.05em;"><span style="height:2.7em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span>) dividido por el ancho de banda de la interfaz:</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:1em;vertical-align:-0.25em;" class="strut"></span><span style="margin-right:0.07153em;" class="mord mathnormal">C</span><span class="mopen">(</span><span class="mord mathnormal">i</span><span class="mclose">)</span><span style="margin-right:0.2777777777777778em;" class="mspace"></span><span class="mrel">=</span><span style="margin-right:0.2777777777777778em;" class="mspace"></span></span><span class="base"><span style="height:2.327108em;vertical-align:-0.8360000000000001em;" class="strut"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span style="height:1.491108em;" class="vlist"><span style="top:-2.3139999999999996em;"><span style="height:3em;" class="pstrut"></span><span class="mord"><span style="margin-right:0.05017em;" class="mord mathnormal">B</span><span class="mord"><span style="margin-right:0.13889em;" class="mord mathnormal">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span style="height:0.31166399999999994em;" class="vlist"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span style="height:2.7em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span style="height:0.15em;" class="vlist"><span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span style="height:3em;" class="pstrut"></span><span style="border-bottom-width:0.04em;" class="frac-line"></span></span><span style="top:-3.677em;"><span style="height:3em;" class="pstrut"></span><span class="mord"><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span style="height:0.8141079999999999em;" class="vlist"><span style="top:-3.063em;margin-right:0.05em;"><span style="height:2.7em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">8</span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span style="height:0.8360000000000001em;" class="vlist"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span><p>Ejemplos de coste para diferentes tipos de enlaces:</p>
+<table>
+<thead>
+<tr>
+<th align="center">Tipo de interfaz</th>
+<th align="center">BW de referencia</th>
+<th align="right">BW predeterminado</th>
+<th align="right">Coste</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">10 Gigabit Ethernet (10Gb/s)</td>
+<td align="center">100.000.000</td>
+<td align="right">10.000.000.000</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="center">1 Gigabit Ethernet (1Gb/s)</td>
+<td align="center">100.000.000</td>
+<td align="right">1.000.000.000</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="center">Fast Ethernet (100 Mb/s)</td>
+<td align="center">100.000.000</td>
+<td align="right">100.000.000</td>
+<td align="right">1</td>
+</tr>
+<tr>
+<td align="center">Ethernet (10 Mb/s)</td>
+<td align="center">100.000.000</td>
+<td align="right">10.000.000</td>
+<td align="right">10</td>
+</tr>
+<tr>
+<td align="center">Serial (1,544 Mb/s)</td>
+<td align="center">100.000.000</td>
+<td align="right">1.554.000</td>
+<td align="right">64</td>
+</tr>
+<tr>
+<td align="center">Serial (128 Kb/s)</td>
+<td align="center">100.000.000</td>
+<td align="right">128.000</td>
+<td align="right">781</td>
+</tr>
+</tbody></table>
 <h2 class="atx" id="el-protocolo-bgp-lessa-namedouble-quotepunto6double-quotegreaterlessagreater">El protocolo BGP <a name="Punto6"></a></h2>
 <h3 class="atx" id="introduccion-y-conceptos-iniciales-lessa-namedouble-quotepunto61double-quotegreaterlessagreater">Introducción y conceptos iniciales <a name="Punto6.1"></a></h3>
+<p>El objetivo fundamental de la división en sistemas autónomos es mejorar la escalabilidad del encaminamiento permitiendo que a nivel del encaminamiento global en Internet, cada sistema autónomo pueda verse como un dominio de routing autónomo con su propio plan de encaminamiento y direccionamiento interno que informa a otros sistemas autónomos de qué redes son alcanzables a través de él. A cada uno de estos sistemas autónomos se le asigna un identificador único llamado <em>Autonomous System Number (ASN)</em>, que es un valor de 16 bits que lo identifica de forma unívoca. Por ejemplo Harvard tiene ASN 11 y RedIRIS tiene ASN 766.</p>
+<p>En el routing inter-dominio intervienen también aspectos de política de rutas. Hay que tener en cuenta que en muchas ocasiones cada AS establece sus propias políticas y, al poder ser competidores potenciales, no se puede esperar ayuda ni suponer un correcto comportamiento en cuanto a las rutas que anuncian y los costes que anuncian.</p>
+<p>El objetivo fundamental del encaminamiento inter-dominio por tanto se centra en encontrar un camino entre origen y destino que cumpla las políticas establecidas por cada AS intermedio y no tenga ciclos. Este camino <mark>podría no ser óptimo</mark> desde el punto de vista de alguna métrica. En general, el problema del encaminamiento inter-dominio consiste más bien en encontrar una lista de sistemas autónomos por los que ir transitando el tráfico de origen a destino más que un conjunto concreto de enlaces de origen a destino. El camino concreto que se seguirá dentro de cada uno de esos ASs cuando circula el tráfico vendrá determinado por los caminos que calcule el protocolo interno de encaminamiento que use ese AS.</p>
+<blockquote>
+<p>Denominamos <strong>tráfico local</strong> a aquel que se original o termina en equipos de un determinado AS.</p>
+</blockquote>
+<blockquote>
+<p>Denominamos <strong>tráfico de tránsito</strong> a aquel que pasa a través de un AS, pero ni la fuente ni el destino están en dicho AS.</p>
+</blockquote>
+<p>Podemos clasificar tres tipos de AS:</p>
+<ul>
+<li><p><strong>Stub AS</strong>: es un AS que tiene solo una única conexión con otro AS, por lo que realmente solo encaminará tráfico local y nunca tráfico de tránsito entre dos AS.</p>
+</li>
+<li><p><strong>Multihommed AS</strong>: es un AS que tiene conexiones a dos o más ASs vecinos, pero se niega a cursar tráfico de tránsito.</p>
+</li>
+<li><p><strong>Transit AS</strong>: es un AS que tiene conexiones a dos o más ASs vecinos y se ha diseñado para transportar tanto tráfico local como tráfico de tránsito entre otros AS.</p>
+</li>
+</ul>
+<p>En algunos casos, la topología y las políticas de encaminamiento son tan complejas que no es sencillo clasificar a un AS en una categoría concreta. A continuación puede verse un ejemplo con sistemas autónomos de los diferentes tipos mencionados:</p>
+<img width="557" data-align="center" alt="" src="assets/ejemplos_tipos_AS_y_relaciones.png" title="">
+
+<p>Otro aspecto importante son las relaciones que pueden existir entre los diferentes AS. Las políticas de cada AS pueden ser extremadamente complejas, pero si que hay algunos tipos de relaciones muy comunes:</p>
+<ul>
+<li><p><strong>Proveedor-Cliente</strong>: los proveedores basan su negocio en conectar a sus clientes al resto de Internet. Un cliente podría ser una empresa grande o también podría ser un ISP pequeño que, a su vez, tenga clientes a los que les da acceso a Internet. La política común en este tipo de relación consiste en que el proveedor anuncia las redes de sus clientes al resto de Internet para que sus redes sean alcanzables por cualquier nodo de Internet, y también anuncia todas las rutas que conoce para llegar a redes de Internet al router de sus clientes para que sepan cómo llegar a destinos fuera de sus AS.</p>
+</li>
+<li><p><strong>Cliente-Proveedor</strong>: el cliente quiere conseguir que el tráfico que pueda generarse en Internet dirigido a su red sea enrutado hacia él por el proveedor, y también quiere ser capaz de enviar tráfico al resto de Internet. Por tanto, su política más común es anunciar todas las rutas y las de sus clientes al proveedor para que pueda distribuirlas por Internet. Su política también será no anunciar las rutas que haya aprendido de uno de sus proveedores al otro para asegurarse que su red no sea utilizada para transportar tráfico de tránsito entre dichos proveedores.</p>
+</li>
+<li><p><strong>Peering</strong>: los acuerdos de <em>peering</em> entre dos ASs se establecen de igual a igual entre proveedores para poder cursar tráfico entre los clientes de cada uno de ellos sin necesidad de tener que pagar a un tercer proveedor que haga de tránsito entre ambos. En algunos casos, estos acuerdos entre operadores son tan frecuentes que se establecen puntos neutros de interconexión (NIX) cercanos a diferentes operadores para que puedan intercambiar tráfico y así ahorrar costes. La política tipica en este caso es anunciar las rutas aprendidas de los clientes al <em>peer</em> y anunciar las rutas aprendidas del <em>peer</em> a los clientes, pero anunciar las rutas del <em>peer</em> a ninguno de los proveedores ni viceversa para evitar ser usado como tránsito.</p>
+</li>
+</ul>
 <h3 class="atx" id="funcionamiento-del-protocolo-bgp-lessa-namedouble-quotepunto62double-quotegreaterlessagreater">Funcionamiento del protocolo BGP <a name="Punto6.2"></a></h3>
+<p>Inicialmente en Internet se utilizaba como protocolo de routing externo el denominado EGP (<em>Exterior Gateway Protocol</em>), sin embargo, con el crecimiento de Internet hubo que buscar una solución más escalable y en 1989 el <a href="https://www.ietf.org">IETF</a> desarrolló un nuevo protocolo de routing externo llamado <strong>BGP</strong> (<em>Border Gateway Protocol</em>). Existen varias versiones de BGP, en 1998 se añadieron extensiones para soportar IPv6, multicast y soporte multicast a la denominada BGP4+, descrita en el RFC 2283.</p>
+<p>El protocolo BGP se usa entre routers frontera de sistemas autónomos vecinos para intercambiar información de alcanzabilidad a redes.  Se puede considerar como un protocolo de “vector de caminos” (<em>AS Path</em>) porque, aunque es un protocolo que guarda ciertas similitudes con lo que sería un protocolo de vector de distancia donde los nodos del grafo serían los sistemas autónomos y las políticas definirían los enlaces entre los diferentes AS, en lugar de comunicar a los vecinos vectores de distancias a redes, comunica caminos completos de ASs que habría que recorrer para llegar a un <u>prefijo de red</u> determinado. La topología interna de los ASs no se conoce, por lo que intentar calcular un camino globalmente óptimo no tiene sentido, ya que no conocemos a priori el coste de atravesar un AS, de hecho, puede haber ASs atravesables con muy pocos saltos y otros con muchos, por lo que <mark>atravesar menos ASs no siempre es el camino más corto</mark>. Por tanto, lo que realmente anuncia un router BGP a sus vecinos es alcanzabilidad a redes, y no rutas concretas ni óptimas.</p>
+<p>El hecho de que se incluya la lista completa de ASs en lugar del coste permite detectar de forma sencilla los ciclos.</p>
+<p>Un router frontera de un AS anuncia a sus vecinos aquellas rutas que él considera mejor para su AS aplicando la política local que haya configurado el administrador, por lo que aún conociendo varios <em>AS-Path</em> para llegar a una misma red destino, solo anunciaría el que él eligiera independientemente de que esa alternativa pueda no ser el mejor <em>AS-Path</em> para el AS vecino. Del mismo modo, si algún enlace falla y algunas
+de esas redes dejan de estar alcanzables por el <em>AS-Path</em> que se había elegido localmente, el router enviará a sus vecinos de otros ASs, a los que anunció ese <em>AS-Path</em>, una invalidación de dichas rutas (<em>withdrawn</em>).</p>
+<p>El funcionamiento del protocolo consiste, en primr lugar, en establecer la sesión con los vecinos de otras ASs e intercambiar las rutas. A continuación se muestra el diagrama de estados correspondiente:</p>
+<p><img alt="" src="assets/estados_bgp.png"></p>
+<p>Para llevar a cabo esta operación, el protocolo usa 4 mensajes:</p>
+<ul>
+<li><p><strong>Open</strong>: establece la sesión de <em>peering</em> entre dos routers BGP.</p>
+</li>
+<li><p><strong>Keep Alive</strong>: una vez se han intercambiado las rutas, el router permanece en el último estado y solo enviar actualizar cuando hay modifcaciones que notificar. De esta manera, si pasa un cierto tiempo, el router vecino no tiene forma de saber si el vecino no tiene nada que notificar o ha perdido la conectividad. Es por ello que, en caso de no haber nada nuevo que notificar, cada cierto tiempo los nodos enviarían un mensaje <em>Keep Alive</em> para informar al vecino de que se mantienen activos.</p>
+</li>
+<li><p><strong>Notification</strong>: cierra una sesión de <em>peering</em> y notifica al otro router de que va a dejar de anunciar rutas.</p>
+</li>
+<li><p><strong>Update</strong>: contiene los anuncios de las nuevas rutas, o indica aquellas que deben ser anuladas (<em>withdrawn</em>).</p>
+</li>
+</ul>
+<p>Los anuncios de rutas que envía un router BGP a uno de sus vecinos constan de una serie de prefijos de red (direcciones IP y máscaras asociadas de las redes alcanzables) junto con una serie de valores asociados a cada una de esas rutas llamados atributos. Existen varios tipos de atributos que se identifican por un valor y un código. Se listan a continuación:</p>
+<table>
+<thead>
+<tr>
+<th>Valor</th>
+<th>Código</th>
+<th>Referencia</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>ORIGIN</code></td>
+<td>[RFC1771]</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>AS_PATH</code></td>
+<td>[RFC1771]</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>NEXT_HOP</code></td>
+<td>[RFC1771]</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>MULTI_EXIT_DISC</code></td>
+<td>[RFC1771]</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>LOCAL_PREF</code></td>
+<td>[RFC1771]</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>ATOMIC_AGGREGATE</code></td>
+<td>[RFC1771]</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>AGGREGATOR</code></td>
+<td>[RFC1771]</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>COMMUNITY</code></td>
+<td>[RFC1997]</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>ORIGINATOR_ID</code></td>
+<td>[RFC2796]</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>CLUSTER_LIST</code></td>
+<td>[RFC2796]</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>DPA</code></td>
+<td>[Chen]</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>ADVERTISER</code></td>
+<td>[RFC1863]</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>RCID_PATH / CLUSTER_ID</code></td>
+<td>[RFC1863]</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>MP_REACH_NLRI</code></td>
+<td>[RFC2283]</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>MP_UNREACH_NLRI</code></td>
+<td>[RFC2283]</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>EXTENDED COMMUNITIES</code></td>
+<td>[Rosen]</td>
+</tr>
+<tr>
+<td>...</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>255</td>
+<td>Reservado para desarrollo</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>Los atributos incluyen fundamentalmente información asociada a las rutas, que luego puede ser usada por los routers para, en caso de recibir diferentes anuncios para una misma ruta, poder elegir la más adecuada según la política.</p>
+<h4 class="atx" id="el-atributo-as_path">El atributo <code>AS_PATH</code></h4>
+<p>Cuando un router BGP anuncia a un vecino alcanzabilidad a un determinado prefijo de red e incluye como atributo el <code>AS_PATH</code>, lo que se añade es el vector de caminos. El atributo <code>AS_PATH</code> define la lista de ASs que habría que recorrer para llegar a la red que se está anunciando.</p>
+<p>En el siguiente ejemplo podemos ver cómo se va actualizando el atributo <code>AS_PATH</code> en función del router que envía el anuncio:</p>
+<img width="608" data-align="center" alt="" src="assets/as_path.png" title="">
+
+<p> Como el prefijo de red <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:1em;vertical-align:-0.25em;" class="strut"></span><span class="mord">1</span><span class="mord">3</span><span class="mord">5</span><span class="mord">.</span><span class="mord">2</span><span class="mord">0</span><span class="mord">7</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">/</span><span class="mord">1</span><span class="mord">6</span></span></span></span> pertenece al AS 6341, cuando el router frontera de dicho AS anuncia alcanzabilidad a dicho prefijo de red, inicialmente el <code>AS_PATH</code>=6341. Una vez el router frontera BGP del AS 7018 recibe información de que se puede llegar a esa red a través del AS 6341, ahora anuncia a sus vecinos que él sabe llegar a la red <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:1em;vertical-align:-0.25em;" class="strut"></span><span class="mord">1</span><span class="mord">3</span><span class="mord">5</span><span class="mord">.</span><span class="mord">2</span><span class="mord">0</span><span class="mord">7</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">/</span><span class="mord">1</span><span class="mord">6</span></span></span></span> con AS_PATH = 6341 7018. Este proceso continúa hasta que, según las políticas de cada AS, dicha información de alcanzabilidad se distribuye
+por todos los ASs que corresponda en Internet.</p>
+<p>En el ejemplo podemos ver cómo con el AS 12654 llega un anuncio BGP de alcanzabilidad a la red <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:1em;vertical-align:-0.25em;" class="strut"></span><span class="mord">1</span><span class="mord">3</span><span class="mord">5</span><span class="mord">.</span><span class="mord">2</span><span class="mord">0</span><span class="mord">7</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">/</span><span class="mord">1</span><span class="mord">6</span></span></span></span> para cada uno de sus ASs vecinos. Por tanto, en base a este atributo, se elegirá aquel que tenga un <code>AS_PATH</code> con menos saltos. Es decir, el tráfico desde RIPE NCC hasta los hosts de la red <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:1em;vertical-align:-0.25em;" class="strut"></span><span class="mord">1</span><span class="mord">3</span><span class="mord">5</span><span class="mord">.</span><span class="mord">2</span><span class="mord">0</span><span class="mord">7</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">/</span><span class="mord">1</span><span class="mord">6</span></span></span></span> circulará por los ASs 3549, 7018 y 6341.</p>
+<p>El atributo <code>AS_PATH</code> solo garantiza que se atraviesan menos ASs para llegar al destino, pero no que el camino sea globalmente el más corto porque BGP no tiene conocimiento del coste de atravesar cada AS en particular. Este atributo permite evitar ciclos porque, si un router de un AS ve que su número de AS aparece ya en el <code>AS_PATH</code> de un anuncio que acaba de llegarle, sabe que solo implicaría un ciclo por lo que puede desecharlo directamente.</p>
+<h4 class="atx" id="el-atributo-next_hop">El atributo <code>NEXT_HOP</code></h4>
+<p>Cuando un router de un AS X anuncia un prefijo de red a otro vecino BGP de otro AS Y, el atributo <code>NEXT_HOP</code> siempre indica la dirección IP del router BGP frontera del AS X que envió el anuncio. Se usa para que el router frontera del AS Y sepa qué dirección IP ha de poner en su tabla de rutas como siguiente salto para esa red destino. Se usa también para la integración de las rutas externas e internas de un sistema autónomo.</p>
 <h3 class="atx" id="integracion-de-routing-interdominio-y-routing-intradominio-lessa-namedouble-quotepunto63double-quotegreaterlessagreater">Integración de routing interdominio y routing intradominio <a name="Punto6.3"></a></h3>
+<p>El caso más simple es aquel en el que tenemos un <em>stub AS</em> que solo dispone de conectividad externa a través de un único AS vecino. El router BGP de dicho AS inyectará una ruta por defecto (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.64444em;vertical-align:0em;" class="strut"></span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span></span></span></span>) que se podría anunciar con el protocolo interno que se esté usando al resto de routers del AS.</p>
+<p>Cuando hay varios routers frontera en el AS, cada uno aprenderá rutas específicas hablando BGP con otros ASs. De hecho, el volumen de rutas que se aprenden en BGP, sobre todo en áreas del backbone de Internet, es tan grande (más de 300.000) que si se redistribuyesen tal cual al protocolo de routing interno para anunciarlas a todos los routers del AS, claramente se desbordaría y la sobrecarga de control sería excesiva.
+Pare este caso, se va a emplear una solución alternativa que describimos a continuación.</p>
+<p>Uno de los primeros aspectos a considerar es qué podría suceder para que un router frontera pensase que es mejor ir por un AS y otro tuviese la visión contraria. Para que haya una visión coordinada en la red, nuestros routers frontera no deben anunciar cosas distintas a vecinos BGP de ASs distintos sobre la alcanzabilidad a determinadas redes. Lo primero que se hace es establecer sesiones BGP entre todos los routers frontera del AS (todos con todos) para que s eintercambien entre ellos las diferentes redes que cada uno ha aprendido por su cuenta, y puedan llegar a tener una visión homogénea de las redes que se pueden alcanzar desde el AS. Esto permitirá, por ejemplo, que una red alcanzable a través de nuestros routers frontera pueda ser anunciado por otro router frontera a otro AS, ya que usando esta sesión BGP todos aprenderían esa información. Al ser sesiones BGP entre routers internos, suelen llamarse <strong><em>iBGP</em></strong> (<em>internal</em> BGP), mientras que a las sesiones normales entre routers frontera de distintos AS se les llama <strong><em>eBGP</em></strong> (<em>external</em> BGP); a nivel de funcionamiento, en ambos casos se anuncian las rutas de la misma forma usando BGP.</p>
+<p>Ahora cada router frontera BGP, tras haber hablado iBGP con los otros routers frontera, habrá aprendido para cada una de esas redes externas alcanzables desde el AS cuál es el mejor siguiente salto a nivel BGP. Dentro del AS se está ejecutando algún protocolo de routing interno que permite saber el mejor siguiente salto desde cualquier router hasta el mejor router iBGP para cada uno de los prefijos aprendidos. Combinando esta información, y rredistribuyendo ya las rutas consensuadas entre los <em>peers</em> iBGP, cada nodo podría calcular su <em>forwarding table</em>.</p>
+<p>Supongamos el siguiente ejemplo:</p>
+<img width="627" data-align="center" alt="" src="assets/bgp_routing_interno.png" title="">
+
+<p>Cuando el router frontera del AS 2 anuncia al AS 1 el prefijo <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:1em;vertical-align:-0.25em;" class="strut"></span><span class="mord">1</span><span class="mord">3</span><span class="mord">5</span><span class="mord">.</span><span class="mord">2</span><span class="mord">0</span><span class="mord">7</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">0</span><span class="mord">/</span><span class="mord">1</span><span class="mord">6</span></span></span></span>, el atributo <code>NEXT_HOP</code> será su dirección IP (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.64444em;vertical-align:0em;" class="strut"></span><span class="mord">1</span><span class="mord">9</span><span class="mord">2</span><span class="mord">.</span><span class="mord">0</span><span class="mord">.</span><span class="mord">2</span><span class="mord">.</span><span class="mord">1</span></span></span></span>). Cuando el router frontera del AS1 notifica por iBGP al otro router frontera, vemos cómo, efectivamente, no cambia esos valores de atributos. Por tanto, este segundo router ha aprendido por un lado por iBGP, en su tabla de rutas BGP lo siguiente:</p>
+<table>
+<thead>
+<tr>
+<th>Red destino</th>
+<th>Next Hop</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>135.207.0.0/16</td>
+<td>192.0.2.1</td>
+</tr>
+</tbody></table>
+<p>Al mismo tiempo, como los routers frontera redistribuyen en el protocolo de routing interno las redes alas que están conectados, también el propio protocolo de routing interno que haya en AS 1 habrá aprendido en la tabla de rutas dicho protocolo:</p>
+<table>
+<thead>
+<tr>
+<th>Red destino</th>
+<th>Next Hop</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>192.0.2.0/30</td>
+<td>10.10.10.10</td>
+</tr>
+</tbody></table>
+<p>Por tanto, en su tabla final de <em>forwarding</em> a nivel de router, lo que habrá es una entrada que combina esas dos entradas de tablas distinas de rutas en una sola que, como puede verse, apunta correctamente a su siguiente salto:</p>
+<table>
+<thead>
+<tr>
+<th>Red destino</th>
+<th>Next Hop</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>135.207.0.0/16</td>
+<td>10.10.10.10</td>
+</tr>
+</tbody></table>
 <h2 class="atx" id="bibliografia-lessa-namedouble-quotebibliografiadouble-quotegreaterlessagreater">Bibliografía <a name="Bibliografía"></a></h2>
+<ul>
+<li><p>Douglas E. Comer. Internetworking with TCP/IP Volume I. Principles, Protocols and Architecture, 5th Ed. Prentice Hall, Pearson, 2006. Cap. 4, 8, 10, 14, 15 y 16.</p>
+</li>
+<li><p>Larry L. Peterson and Bruce S. Davie. Computer Networks: A systems approach, 5th Ed. Elsevier, 2011 sec 3.2, 3.3 y 4.1.</p>
+</li>
+<li><p>Richard W. Stevens. TCP/IP Illustrated Volume I: The Protocols, 1st Ed. Addison-Wesley, 1994. Cap. 2 y 4.</p>
+</li>
+<li><p>Andrew S. Tanenbaum. Redes de Computadoras 3a Ed. Prentice Hall, Pearson, 1998. Secciones. 5.2 y 5.4.</p>
+</li>
+<li><p>J. B. Kruskal. On the shortest spanning subtree and the traveling salesman problem. Proceedings of the American Mathematical Society, 7:48–50, 1956. Lectura complementaria.</p>
+</li>
+<li><p>R. C. Prim. Shortest connection networks and some generalisations. Bell System Technical Journal, 36:1389–1401, 1957. Lectura complementaria.</p>
+</li>
+</ul>
 </article>
 </body>
 </html>
